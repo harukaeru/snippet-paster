@@ -46,6 +46,7 @@ input {
 
   <div class="markdown-body">
     <pre id="code"></pre>
+    <pre id="code2"></pre>
   </div>
 </body>
 
@@ -88,7 +89,8 @@ input {
   const targetIframe = document.getElementById("target");
   const setPaster = (generated) => {
     const tag = '<iframe src="' + generated + '" width="100%" height="50%">';
-    document.getElementById('code').innerText = tag;
+    document.getElementById('code').innerText = generated;
+    document.getElementById('code2').innerText = tag;
   }
   const changeIframeSrc = (generated) => {
     targetIframe.src = generated;
