@@ -94,9 +94,15 @@ input {
     targetIframe.src = generated;
   }
 
+  const getLoc = () => {
+    const a = location.href.split('/');
+    const newA = a.slice(0, -1)
+    return newA.join('/');
+  }
+  const loc = getLoc();
   const generate = (variables, value, modeText) => {
     const variablesParam = '&' + variables.map(v => 'variables=' + encodeURI(v)).join('&')
-    const generated = 'iframe.html?template=' + encodeURI(value) + variablesParam + '&mode=' + modeText;
+    const generated = loc + '/iframe.html?template=' + encodeURI(value) + variablesParam + '&mode=' + modeText;
     console.log(generated);
     setPaster(generated);
     changeIframeSrc(generated);
