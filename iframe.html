@@ -1,0 +1,154 @@
+<script src="codemirror-5.48.2/lib/codemirror.js"></script>
+<link rel="stylesheet" href="codemirror-5.48.2/lib/codemirror.css">
+<style>
+.CodeMirror
+{
+  line-height: 21px;
+}
+input {
+  width: 100%;
+}
+.kaeru-container {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+</style>
+<script src="codemirror-5.48.2/mode/markdown/markdown.js"></script>
+<script src="codemirror-5.48.2/mode/css/css.js"></script>
+<script src="codemirror-5.48.2/mode/javascript/javascript.js"></script>
+<script src="codemirror-5.48.2/mode/jsx/jsx.js"></script>
+<script src="codemirror-5.48.2/mode/nginx/nginx.js"></script>
+<script src="codemirror-5.48.2/mode/python/python.js"></script>
+<script src="codemirror-5.48.2/mode/ruby/ruby.js"></script>
+<script src="codemirror-5.48.2/mode/shell/shell.js"></script>
+<script src="codemirror-5.48.2/mode/sql/sql.js"></script>
+<body>
+  <div id="variables_container" class="kaeru-container"></div>
+  <button id="copybtn">Copy</button>
+  <div id="output"></div>
+</body>
+
+<script>
+  // get the parameters to display in the editor.
+  var url = new URL(location.href);
+  var template = url.searchParams.get("template");
+  var variables = url.searchParams.getAll("variables");
+  var mode = url.searchParams.get("mode");
+  mode = mode ? mode : 'markdown';
+
+  // Minimum implementation of store
+  class Store {
+    constructor() {
+      this.state = {};
+    }
+    setState(key, value) {
+      this.state[key] = value;
+      this.listener(this.state);
+    }
+    subscribe(func) {
+      this.listener = func;
+    }
+  }
+  var store = new Store();
+
+  // create variable setters.
+  var variables_container = document.getElementById("variables_container");
+  for (var key of variables) {
+    var variable_setter = document.createElement("div");
+
+    var label = document.createElement("label");
+    label.innerHTML = key + ':';
+    label.classList.add("kaeru-gutter");
+    var input = document.createElement("input");
+    input.inputMode = 'text';
+
+    variable_setter.append(label);
+    variable_setter.append(input);
+
+    const local_key = key
+    const r = new RegExp(key, 'g')
+    input.addEventListener('input', e => {
+      const value = e.target.value ? e.target.value : local_key;
+      store.setState(local_key, {regex: r, value: value});
+    })
+
+    variables_container.append(variable_setter);
+  }
+
+console.log('mode', mode);
+
+  // an editor
+  var output = document.getElementById("output");
+  var editor = new CodeMirror(output, {
+    value: template ? template : '',
+    lineNumbers: true,
+    mode: mode
+  });
+
+  // create a listner.
+  const setValueToEditor = state => {
+    var finalValue = template;
+    for (var key in state) {
+      const regex = state[key]['regex']
+      const value = state[key]['value']
+      finalValue = finalValue.replace(regex, value);
+    }
+    editor.setValue(finalValue);
+  }
+
+  store.subscribe(setValueToEditor);
+const copyToClipboard = (function initClipboardText() {
+  const textarea = document.createElement('textarea');
+
+  // Move it off screen.
+  textarea.style.cssText = 'position: absolute; left: -99999em';
+
+  // Set to readonly to prevent mobile devices opening a keyboard when
+  // text is .select()'ed.
+  textarea.setAttribute('readonly', true);
+
+  document.body.appendChild(textarea);
+
+  return function setClipboardText(text) {
+    textarea.value = text;
+
+    // Check if there is any content selected previously.
+    const selected = document.getSelection().rangeCount > 0 ?
+      document.getSelection().getRangeAt(0) : false;
+
+    // iOS Safari blocks programmtic execCommand copying normally, without this hack.
+    // https://stackoverflow.com/questions/34045777/copy-to-clipboard-using-javascript-in-ios
+    if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+      const editable = textarea.contentEditable;
+      textarea.contentEditable = true;
+      const range = document.createRange();
+      range.selectNodeContents(textarea);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      textarea.setSelectionRange(0, 999999);
+      textarea.contentEditable = editable;
+    } else {
+      textarea.select();
+    }
+
+    try {
+      const result = document.execCommand('copy');
+
+      // Restore previous selection.
+      if (selected) {
+        document.getSelection().removeAllRanges();
+        document.getSelection().addRange(selected);
+      }
+
+      return result;
+    } catch (err) {
+      return false;
+    }
+  };
+})();
+const copyBtn = document.getElementById("copybtn");
+copyBtn.addEventListener('click', () => {
+  copyToClipboard(editor.getValue());
+})
+</script>

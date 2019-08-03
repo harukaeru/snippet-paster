@@ -1,0 +1,122 @@
+<script src="codemirror-5.48.2/lib/codemirror.js"></script>
+<link rel="stylesheet" href="codemirror-5.48.2/lib/codemirror.css">
+<script src="codemirror-5.48.2/mode/markdown/markdown.js"></script>
+<script src="codemirror-5.48.2/mode/css/css.js"></script>
+<script src="codemirror-5.48.2/mode/javascript/javascript.js"></script>
+<script src="codemirror-5.48.2/mode/jsx/jsx.js"></script>
+<script src="codemirror-5.48.2/mode/nginx/nginx.js"></script>
+<script src="codemirror-5.48.2/mode/python/python.js"></script>
+<script src="codemirror-5.48.2/mode/ruby/ruby.js"></script>
+<script src="codemirror-5.48.2/mode/shell/shell.js"></script>
+<script src="codemirror-5.48.2/mode/sql/sql.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/3.0.1/github-markdown.css" rel="stylesheet"></link>
+
+<style>
+select {
+  display: block;
+}
+.CodeMirror
+{
+  line-height: 21px;
+}
+input {
+  width: 100%;
+}
+.kaeru-container {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+</style>
+<script src="codemirror-5.48.2/mode/javascript/javascript.js"></script>
+<body>
+  <label>Mode: </label><select id="mode"></select>
+  <label>Variables: </label><input type="text" id="variables"></input>
+
+  <label>Template:</label>
+  <div id="template_area"></div>
+  <button id="generate_btn">Generate</button>
+
+  <hr />
+
+  <label>Test:</label>
+  <iframe id="target" src="" width="100%" height="50%">
+  </iframe>
+
+  <hr />
+
+  <div class="markdown-body">
+    <pre id="code"></pre>
+  </div>
+</body>
+
+<script>
+  const MODE_LIST = ['markdown', 'css', 'javascript', 'jsx', 'nginx', 'python', 'ruby', 'shell', 'sql', ]
+
+  const modeSelect = document.getElementById("mode");
+  for (var m of MODE_LIST) {
+    var option = document.createElement("option");
+    option.text = m;
+    modeSelect.add(option);
+  }
+  modeSelect.addEventListener('change', e => {
+    console.log('editor', editor, e.target.value);
+    editor.setOption("mode", e.target.value);
+  })
+
+  var template_area = document.getElementById("template_area");
+  var editor = new CodeMirror(template_area, {
+    value: '',
+    lineNumbers: true,
+    mode: 'markdown'
+  });
+
+  var generate_btn = document.getElementById("generate_btn");
+  generate_btn.addEventListener('click', () => {
+    const value = editor.getValue();
+    const modeText = modeSelect.options[modeSelect.selectedIndex].text;
+    const variables_input = document.getElementById("variables").value;
+    const variables = variables_input.split(',');
+    console.log('variables', variables);
+    console.log('value', value);
+    console.log('modeText', modeText);
+    localStorage.setItem("variables", variables);
+    localStorage.setItem("value", value);
+    localStorage.setItem("modeText", modeText);
+    generate(variables, value, modeText);
+  });
+
+  const targetIframe = document.getElementById("target");
+  const setPaster = (generated) => {
+    const tag = '<iframe src="' + generated + '" width="100%" height="50%">';
+    document.getElementById('code').innerText = tag;
+  }
+  const changeIframeSrc = (generated) => {
+    targetIframe.src = generated;
+  }
+
+  const generate = (variables, value, modeText) => {
+    const variablesParam = '&' + variables.map(v => 'variables=' + encodeURI(v)).join('&')
+    const generated = 'iframe.html?template=' + encodeURI(value) + variablesParam + '&mode=' + modeText;
+    console.log(generated);
+    setPaster(generated);
+    changeIframeSrc(generated);
+  }
+
+  const v = localStorage.getItem("variables")
+  if (v) {
+    document.getElementById("variables").value = v;
+  }
+
+  const vl = localStorage.getItem("value")
+  if (vl) {
+    editor.setValue(vl);
+  }
+  const mm = localStorage.getItem("modeText")
+  if (mm) {
+    modeSelect.selectedIndex = [...modeSelect.options].findIndex (option => option.text === mm);
+    editor.setOption("mode", mm);
+  }
+</script>
+
+<script>
+</script>
